@@ -42,7 +42,8 @@ tulokset  <- vector("list", 20)
 
 for (t in seq_len(20)) {
   vaesto <- vaesto |>
-    left_join(siirtymat_proj, by = c("ika", "sukupuoli", "koulutus" = "lahto", "kieli")) |>
+    left_join(siirtymat_proj |>
+                filter( kieli != "Yhteensä"), by = c("ika", "sukupuoli", "koulutus" = "lahto", "kieli")) |>
     pivot_longer(all_of(tilat), names_to = "kohde", values_to = "tp") |>
     mutate(virtaus = arvo * tp) |>
     group_by(ika, sukupuoli, koulutus = kohde, kieli) |>
@@ -78,9 +79,9 @@ siirtymat_proj_cf1 <- siirtymat_proj |>
   )
 
 vaesto_cf1   <- alkuvaestvo
-tulokset_cf1 <- vector("list", 20)
+tulokset_cf1 <- vector("list", 50)
 
-for (t in seq_len(20)) {
+for (t in seq_len(50)) {
   vaesto_cf1 <- vaesto_cf1 |>
     left_join(siirtymat_proj_cf1, by = c("ika", "sukupuoli", "kieli", "koulutus" = "lahto")) |>
     pivot_longer(all_of(tilat), names_to = "kohde", values_to = "tp") |>
@@ -108,9 +109,9 @@ siirtymat_proj_cf2 <- alkuvaestvo |>
   left_join(ruotsi_tp, by = c("ika", "sukupuoli", "lahto"))
 
 vaesto_cf2   <- alkuvaestvo
-tulokset_cf2 <- vector("list", 20)
+tulokset_cf2 <- vector("list", 50)
 
-for (t in seq_len(20)) {
+for (t in seq_len(50)) {
   vaesto_cf2 <- vaesto_cf2 |>
     left_join(siirtymat_proj_cf2, by = c("ika", "sukupuoli", "kieli", "koulutus" = "lahto")) |>
     pivot_longer(all_of(tilat), names_to = "kohde", values_to = "tp") |>
@@ -146,9 +147,9 @@ siirtymat_proj_cf3 <- siirtymat_proj |>
   select(-perus_vahenema, -lukio_ammatti_yht, -lukio_osuus, -ammatti_osuus)
 
 vaesto_cf3   <- alkuvaestvo
-tulokset_cf3 <- vector("list", 20)
+tulokset_cf3 <- vector("list", 50)
 
-for (t in seq_len(20)) {
+for (t in seq_len(50)) {
   vaesto_cf3 <- vaesto_cf3 |>
     left_join(siirtymat_proj_cf3, by = c("ika", "sukupuoli", "kieli", "koulutus" = "lahto")) |>
     pivot_longer(all_of(tilat), names_to = "kohde", values_to = "tp") |>
@@ -175,9 +176,9 @@ siirtymat_proj_cf4 <- siirtymat_proj |>
   left_join(naisten_tp, by = c("ika", "lahto", "kieli"))
 
 vaesto_cf4   <- alkuvaestvo
-tulokset_cf4 <- vector("list", 20)
+tulokset_cf4 <- vector("list", 50)
 
-for (t in seq_len(20)) {
+for (t in seq_len(50)) {
   vaesto_cf4 <- vaesto_cf4 |>
     left_join(siirtymat_proj_cf4, by = c("ika", "sukupuoli", "kieli", "koulutus" = "lahto")) |>
     pivot_longer(all_of(tilat), names_to = "kohde", values_to = "tp") |>
@@ -210,7 +211,7 @@ siirtymat_proj_cf5 <- alkuvaestvo |>
 # Sovella korkea-siirtymä 2v aiemmin
 korkea_tp_cf5 <- siirtymat_proj_cf5 |>
   select(ika, sukupuoli, lahto, kieli, korkea) |>
-  mutate(ika_varh = ika - 1)
+  mutate(ika_varh = ika - 2)
 
 siirtymat_proj_cf5 <- siirtymat_proj_cf5 |>
   select(-korkea) |>
@@ -360,8 +361,10 @@ vertailu |>
   labs(x = "", y = "", color = NULL, linewidth = NULL) +
   theme(
     legend.position = "none",
-    plot.margin     = margin(r = 80)
-  )
+    plot.margin     = margin(r = 100)
+  )  +coord_cartesian(clip = "off") 
+
+
 ggsave(
   filename = "02_output/vertailu_skenaario2022.svg",
   width    = 12,
@@ -441,7 +444,8 @@ ggplot(rakenne_data, aes(x = vuosi, y = osuus, fill = koulutus)) +
   theme_minimal() +
   theme(
     strip.text      = element_text(face = "bold", size = 11),
-    panel.spacing   = unit(1.2, "lines")  )
+    panel.spacing   = unit(1.2, "lines")  
+  )
 ggsave(
   filename = "02_output/vertailu_rakenne2022.svg",
   width    = 8,
@@ -523,13 +527,14 @@ print(taulukko_wide)
 
 laske_korkea_vuosittain <- function(proj, skenaario_nimi) {
   proj |>
-    filter(vuosi %in% c(2030, 2035, 2040), ika >= 25, ika <= 34) |>
+    filter(vuosi %in% c(2026,2030, 2035, 2040), ika >= 25, ika <= 34) |>
     group_by(vuosi, koulutus) |>
     summarise(arvo = sum(arvo, na.rm = TRUE), .groups = "drop") |>
     group_by(vuosi) |>
     mutate(osuus = arvo / sum(arvo)) |>
     ungroup() |>
     filter(koulutus == "korkea") |>
+    
     select(vuosi, osuus) |>
     mutate(skenaario = skenaario_nimi)
 }
